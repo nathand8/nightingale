@@ -1,87 +1,67 @@
-(function() {
+var pages = [];
+var availablePgsCount = 91;
+for (var i = 1; i <= availablePgsCount; i++) {
+    pages.push({url: "images/" + i + ".png", height: 3880, width: 2550});
+}
 
-    var pages = [];
-    for (var i = 1; i < 92; i++) {
-        pages.push({url: "images/" + i + ".png", height: 3880, width: 2550});
-    }
+$(function() {
+    $("#rotate").click(rotate);
+})
 
-    var imgSrc = "images/1.png";
+function appendImage(imgData) {
+    jQuery('body').append('<img style="height: 100px; display:block; float: left;" src="' + imgData + '" />');
+}
 
-    var staticCanvas = new fabric.StaticCanvas(null, {enableRetinaScaling: false});
+function updateCounter() {
+    var counter = $("#count")[0];
+    counter.innerHTML = parseInt(counter.innerHTML) + 1;
+}
 
-    $(function() {
-        $("#rotate").click(rotate);
-    })
+function rotate() {
 
-    function updateCounter() {
-    }
+    var pgsCount = parseInt($("#pgsCount").val());
+    var delay = parseInt($("#delay").val());
+    var useStaticCanvas = $("#useStaticCanvas")[0].checked;
 
-    function rotate() {
-
-        var pgsCount = parseInt($("#pgsCount").val());
-        var delay = parseInt($("#delay").val());
-
-        _.each(pages, function(page, i) {
-            if (i < pgsCount) {
-                setTimeout(function() {
-                    rotatePage(page);
-                }, delay * i)
+    for (var i = 0; i < pgsCount; i++) {
+        var page = pages[i % availablePgsCount];
+        setTimeout(function(p) {
+            return function() {
+                console.log(p.url);
+                rotatePage(p, useStaticCanvas);
             }
-            
-        })
-
+        }(page), delay * i)
     }
 
-    function rotatePage(page) {
+}
 
-        var canvas = new fabric.Canvas();
-        canvas.setHeight(page.height);
-        canvas.setWidth(page.width);
+var staticCanvas = new fabric.StaticCanvas(null, {enableRetinaScaling: false});
 
-        return createCanvasItems(canvas, page);
+function rotatePage(page, useStaticCanvas) {
+
+    var canvas = undefined;
+    if (useStaticCanvas) {
+        canvas = staticCanvas;
+        canvas.dispose();
+    } else {
+        canvas = new fabric.Canvas();
     }
 
-    function createCanvasItems(canvas, page) {
+    canvas.setHeight(page.height);
+    canvas.setWidth(page.width);
 
-        createMainGroupFromImage(page, function(newGroup) {
-            canvas.add(newGroup).renderAll();
-            newGroup.setAngle((newGroup.angle + 180) % 360);
-            newGroup.setTop((newGroup.top * -1));
-            newGroup.setLeft((newGroup.left * -1));
-            canvas.renderAll();
-            jQuery('body').append('<img style="height: 100px; display:block; float: left;" src="' + canvas.toDataURL() + '" />');
-            var counter = $("#count")[0];
-            counter.innerHTML = parseInt(counter.innerHTML) + 1;
-        });
-    }
+    return createCanvasImage(canvas, page);
+}
 
-    function createMainGroupFromImage(page, callback) {
+function createCanvasImage(canvas, page) {
 
-        fabric.Image.fromURL(page.url, function(oImg) {
+    fabric.Image.fromURL(page.url, function(oImg) {
+        canvas.add(oImg).renderAll();
+        oImg.setAngle(oImg.angle + 180);
+        canvas.renderAll();
 
-            oImg.set({
-                left: (page.width / 2) * -1,
-                top: (page.height / 2) * -1,
-                originX: 'center',
-                originY: 'center',
-                width: page.width,
-                height: page.height,
-                selectable: false
-            });
+        appendImage(canvas.toDataURL());
+        updateCounter();
+    });
 
-
-            var group = new fabric.Group([oImg], {
-                left: 0,
-                top: 0,
-                originX: 'left',
-                originY: 'top',
-                width: page.width,
-                height: page.height,
-                selectable: false
-            });
-
-            callback(group);
-        });
-    }
-
-})();
+}
